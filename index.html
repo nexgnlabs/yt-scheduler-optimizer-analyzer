@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Command Center</title>
+    <title>YouTube Command Center v2.0</title>
     <style>
         :root { --yt-red: #ff0000; --bg: #0f0f0f; --card: #1e1e1e; --text: #fff; --accent: #3ea6ff; --success: #2ba640; }
         body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; line-height: 1.6; }
@@ -45,7 +45,7 @@
         .result-box { background: #000; padding: 25px; border-radius: 10px; border: 1px solid #333; margin-top: 20px; display: none; }
         .result-card { background: #1a1a1a; padding: 15px; border-left: 4px solid var(--accent); margin-bottom: 10px; border-radius: 4px; }
         .result-title { font-weight: bold; font-size: 16px; color: #fff; display: block; margin-bottom: 5px; }
-        .result-desc { color: #bbb; font-size: 14px; }
+        .result-desc { color: #bbb; font-size: 14px; white-space: pre-wrap; }
         
         #loader { display: none; text-align: center; color: var(--accent); margin-top: 20px; font-weight: bold; }
         .error-msg { color: #ffbb00; background: #332200; padding: 15px; border-radius: 8px; border: 1px solid #ffbb00; text-align: center; margin-top: 15px; display: none; }
@@ -54,8 +54,8 @@
 <body>
 
 <div class="app-shell">
-    <h1>YouTube Command Center</h1>
-    <div class="usage-bar">Daily Limit: <span id="used" class="usage-count">0</span> / 10 Operations</div>
+    <h1>YouTube Command Center v2.0</h1>
+    <div class="usage-bar">Daily Limit: <span id="used" class="usage-count">0</span> / 30 Operations</div>
 
     <div class="api-box">
         <label style="margin-top:0; color:#444;">GEMINI API KEY (Saved Locally)</label>
@@ -71,8 +71,8 @@
     <div id="scheduler" class="content-section active">
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
             <div>
-                <label>Channel Niche</label>
-                <input type="text" id="schedNiche" placeholder="e.g. Gaming, Finance, Vlog">
+                <label>Specific Video Title / Topic</label>
+                <input type="text" id="schedTitle" placeholder="e.g. iPhone 16 Review">
             </div>
             <div>
                 <label>Target Audience Location</label>
@@ -85,36 +85,36 @@
                 </select>
             </div>
         </div>
-        <button class="action-btn btn-schedule" onclick="runScheduler()">Calculate Best Upload Times</button>
+        <button class="action-btn btn-schedule" onclick="runScheduler()">Find Exact Upload Time</button>
         <div id="schedResult" class="result-box"></div>
     </div>
 
     <div id="optimizer" class="content-section">
-        <label>Video Title (Draft)</label>
-        <input type="text" id="optTitle" placeholder="e.g. How to lose weight fast">
+        <label>Your Current Video Title</label>
+        <input type="text" id="optTitle" placeholder="e.g. Vlog #14 - My Day">
         
         <label>Video Description / Context</label>
-        <textarea id="optDesc" rows="4" placeholder="Paste your description or explain what happens in the video..."></textarea>
+        <textarea id="optDesc" rows="4" placeholder="Paste your description here..."></textarea>
         
-        <button class="action-btn btn-optimize" onclick="runOptimizer()">Analyze & Optimize Video</button>
+        <button class="action-btn btn-optimize" onclick="runOptimizer()">Benchmark & Optimize</button>
         <div id="optResult" class="result-box"></div>
     </div>
 
     <div id="spy" class="content-section">
-        <label>Competitor Channel or Topic</label>
-        <input type="text" id="spyTopic" placeholder="e.g. Dhruv Rathee, MrBeast, or 'AI News'">
+        <label>Exact Competitor Video Topic</label>
+        <input type="text" id="spyTopic" placeholder="e.g. How to make money online 2025">
         
-        <button class="action-btn btn-spy" onclick="runSpy()">Fetch Keywords & Strategy</button>
+        <button class="action-btn btn-spy" onclick="runSpy()">Deep Analysis & Keywords</button>
         <div id="spyResult" class="result-box"></div>
     </div>
 
-    <div id="loader">Processing Data with Gemini 2.5...</div>
+    <div id="loader">Processing Live Logic with Gemini 2.5...</div>
     <div id="errorBox" class="error-msg"></div>
 
 </div>
 
 <script>
-    const MAX_DAILY = 10;
+    const MAX_DAILY = 30;
 
     // --- Init ---
     window.onload = () => {
@@ -130,7 +130,6 @@
         document.getElementById(tabId).classList.add('active');
         event.target.classList.add('active');
         
-        // Hide previous results to clean UI
         document.querySelectorAll('.result-box').forEach(el => el.style.display = 'none');
         document.getElementById('errorBox').style.display = 'none';
     }
@@ -142,7 +141,7 @@
         if (usage >= MAX_DAILY) {
             document.querySelectorAll('.action-btn').forEach(b => {
                 b.disabled = true;
-                b.innerText = "Daily Limit Reached (10/10)";
+                b.innerText = "Daily Limit Reached (30/30)";
             });
         }
     }
@@ -204,17 +203,21 @@
         }
     }
 
-    // --- Feature 1: Scheduler ---
+    // --- Feature 1: Smart Scheduler ---
     async function runScheduler() {
-        const niche = document.getElementById('schedNiche').value;
+        const title = document.getElementById('schedTitle').value;
         const loc = document.getElementById('schedLoc').value;
-        if (!niche) return alert("Enter Niche!");
+        if (!title) return alert("Enter Video Title!");
 
-        const prompt = `Act as a YouTube Analyst. For the niche "${niche}" targeting audience in "${loc}", identify the 3 BEST times and days to upload for maximum initial velocity.
-        Explain the viewer psychology for each.
+        const prompt = `Act as a YouTube Algorithm Expert.
+        Video Topic: "${title}"
+        Target Audience Location: "${loc}"
+
+        Task: Analyze when the specific audience for this exact topic is most active on YouTube.
+        Identify the 3 BEST upload slots (Day + Time) to maximize initial CTR and Velocity.
         
         Return ONLY valid JSON array:
-        [{"day": "...", "time": "...", "reason": "..."}]`;
+        [{"slot": "Day @ Time", "reason": "Specific reason for this topic's audience behavior."}]`;
 
         const res = await callGemini(prompt);
         if (!res) return;
@@ -222,12 +225,12 @@
         try {
             const json = JSON.parse(cleanJson(res));
             const container = document.getElementById('schedResult');
-            container.innerHTML = `<h3 style="margin-top:0; color:#8e24aa">📅 Best Upload Windows</h3>`;
+            container.innerHTML = `<h3 style="margin-top:0; color:#8e24aa">📅 Algorithm-Optimized Slots</h3>`;
             
             json.forEach(item => {
                 container.innerHTML += `
                     <div class="result-card" style="border-left-color: #8e24aa">
-                        <span class="result-title">${item.day} @ ${item.time}</span>
+                        <span class="result-title">${item.slot}</span>
                         <div class="result-desc">${item.reason}</div>
                     </div>
                 `;
@@ -236,24 +239,23 @@
         } catch (e) { alert("Error parsing AI response."); }
     }
 
-    // --- Feature 2: Optimizer ---
+    // --- Feature 2: Video Optimizer (Benchmark Mode) ---
     async function runOptimizer() {
         const title = document.getElementById('optTitle').value;
         const desc = document.getElementById('optDesc').value;
         if (!title) return alert("Enter Title!");
 
-        const prompt = `Act as a YouTube SEO Expert (2025 Algorithms).
-        Analyze this video:
-        Title: "${title}"
-        Desc: "${desc}"
+        const prompt = `Act as a YouTube Growth Strategist.
+        My Draft: Title: "${title}", Desc: "${desc}"
 
         Task:
-        1. Suggest 3 Better, High-CTR Titles.
-        2. Critique the current metadata (Good/Bad).
-        3. Suggest a Thumbnail Concept.
+        1. "Spy" on top performing channels in this niche (simulate their strategy).
+        2. Rewrite my title 3 times to match the *exact* clickbait style of viral videos in this niche.
+        3. Rewrite the first 2 lines of my description to hook viewers immediately.
+        4. Suggest 1 specific change to the video content itself to make it more viral.
 
         Return ONLY valid JSON:
-        {"titles": ["t1", "t2", "t3"], "critique": "...", "thumbnail_idea": "..."}`;
+        {"titles": ["t1", "t2", "t3"], "description_hook": "...", "content_change": "..."}`;
 
         const res = await callGemini(prompt);
         if (!res) return;
@@ -265,35 +267,38 @@
             let titlesHtml = json.titles.map(t => `<li style="margin-bottom:5px; color:#fff;">${t}</li>`).join('');
 
             container.innerHTML = `
-                <h3 style="margin-top:0; color:var(--accent)">⚡ Optimization Report</h3>
+                <h3 style="margin-top:0; color:var(--accent)">⚡ Viral Optimization</h3>
                 <div class="result-card">
-                    <span class="result-title">Suggested Titles (High CTR)</span>
+                    <span class="result-title">Viral Title Swaps (Competitor Style)</span>
                     <ul style="padding-left:20px; margin-top:5px;">${titlesHtml}</ul>
                 </div>
                 <div class="result-card">
-                    <span class="result-title">Analysis</span>
-                    <div class="result-desc">${json.critique}</div>
+                    <span class="result-title">New Description Hook</span>
+                    <div class="result-desc">${json.description_hook}</div>
                 </div>
                 <div class="result-card">
-                    <span class="result-title">🖼️ Thumbnail Strategy</span>
-                    <div class="result-desc">${json.thumbnail_idea}</div>
+                    <span class="result-title">Suggested Content Tweak</span>
+                    <div class="result-desc">${json.content_change}</div>
                 </div>
             `;
             container.style.display = "block";
         } catch (e) { alert("Error parsing AI response."); }
     }
 
-    // --- Feature 3: Competitor Spy ---
+    // --- Feature 3: Competitor Spy (Deep Mode) ---
     async function runSpy() {
         const topic = document.getElementById('spyTopic').value;
-        if (!topic) return alert("Enter Competitor/Topic!");
+        if (!topic) return alert("Enter Topic!");
 
-        const prompt = `Act as a YouTube Strategist. For the competitor/topic "${topic}", find:
-        1. 15 High-Volume, Low-Competition Tags/Keywords.
-        2. A summary of what content is currently working for them.
+        const prompt = `Act as a Data Analyst.
+        Topic: "${topic}"
+
+        Task: Simulate a deep dive into the top 10 most viewed videos on this specific topic right now.
+        1. Extract the 15 most common "Money Keywords" (high search volume tags) used by these winners.
+        2. Identify ONE specific "Gap" or "Mistake" in their videos that I can exploit to do better.
 
         Return ONLY valid JSON:
-        {"keywords": ["tag1", "tag2"...], "strategy": "..."}`;
+        {"keywords": ["tag1", "tag2"...], "gap_strategy": "..."}`;
 
         const res = await callGemini(prompt);
         if (!res) return;
@@ -303,23 +308,22 @@
             const container = document.getElementById('spyResult');
             
             container.innerHTML = `
-                <h3 style="margin-top:0; color:var(--success)">🕵️ Intelligence Report</h3>
+                <h3 style="margin-top:0; color:var(--success)">🕵️ Deep Market Intelligence</h3>
                 <div class="result-card" style="border-left-color: var(--success)">
-                    <span class="result-title">🔥 Viral Keywords (Copy These)</span>
+                    <span class="result-title">🔥 15 Money Keywords (Copy These)</span>
                     <div style="background:#111; padding:10px; border-radius:5px; margin-top:5px; font-family:monospace; color:#888;">
                         ${json.keywords.join(', ')}
                     </div>
                 </div>
                 <div class="result-card" style="border-left-color: var(--success)">
-                    <span class="result-title">Content Strategy Analysis</span>
-                    <div class="result-desc">${json.strategy}</div>
+                    <span class="result-title">The "Winning Gap" Strategy</span>
+                    <div class="result-desc">${json.gap_strategy}</div>
                 </div>
             `;
             container.style.display = "block";
         } catch (e) { alert("Error parsing AI response."); }
     }
 
-    // Helper to remove Markdown code blocks if AI adds them
     function cleanJson(text) {
         return text.replace(/```json/g, '').replace(/```/g, '').trim();
     }
