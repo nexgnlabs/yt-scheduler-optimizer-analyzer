@@ -55,7 +55,7 @@
 
 <div class="app-shell">
     <h1>YouTube Command Center</h1>
-    <div class="usage-bar">Daily Limit: <span id="used" class="usage-count">0</span> / 5 Operations</div>
+    <div class="usage-bar">Daily Limit: <span id="used" class="usage-count">0</span> / 10 Operations</div>
 
     <div class="api-box">
         <label style="margin-top:0; color:#444;">GEMINI API KEY (Saved Locally)</label>
@@ -114,7 +114,7 @@
 </div>
 
 <script>
-    const MAX_DAILY = 5;
+    const MAX_DAILY = 10;
 
     // --- Init ---
     window.onload = () => {
@@ -142,7 +142,7 @@
         if (usage >= MAX_DAILY) {
             document.querySelectorAll('.action-btn').forEach(b => {
                 b.disabled = true;
-                b.innerText = "Daily Limit Reached";
+                b.innerText = "Daily Limit Reached (10/10)";
             });
         }
     }
