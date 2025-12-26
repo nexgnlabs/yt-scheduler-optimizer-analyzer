@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Command Center</title>
+    <style>
+        :root { --yt-red: #ff0000; --bg: #0f0f0f; --card: #1e1e1e; --text: #fff; --accent: #3ea6ff; --success: #2ba640; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; line-height: 1.6; }
+        .app-shell { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid #333; border-radius: 16px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+
+        /* Header & Usage */
+        h1 { text-align: center; margin-top: 0; background: linear-gradient(90deg, #fff, #999); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .usage-bar { text-align: center; font-size: 12px; color: #666; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px; }
+        .usage-count { color: var(--yt-red); font-weight: bold; }
+
+        /* API Input */
+        .api-box { background: #111; padding: 15px; border-radius: 8px; border: 1px dashed #444; margin-bottom: 20px; }
+        .api-box input { width: 100%; background: transparent; border: none; color: #fff; font-family: monospace; outline: none; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid #333; }
+        .tab-btn { flex: 1; padding: 15px; background: transparent; border: none; color: #888; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.3s; border-bottom: 3px solid transparent; }
+        .tab-btn:hover { color: #fff; background: #252525; }
+        .tab-btn.active { color: var(--accent); border-bottom: 3px solid var(--accent); background: #252525; }
+
+        /* Content Areas */
+        .content-section { display: none; animation: fadeIn 0.4s; }
+        .content-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Inputs */
+        label { display: block; margin-top: 15px; font-size: 11px; color: #aaa; text-transform: uppercase; font-weight: 700; }
+        input, select, textarea { width: 100%; padding: 14px; background: #0a0a0a; border: 1px solid #333; color: #fff; border-radius: 8px; margin-top: 5px; box-sizing: border-box; }
+        input:focus, textarea:focus { border-color: var(--accent); outline: none; }
+
+        /* Buttons */
+        .action-btn { width: 100%; padding: 18px; border: none; border-radius: 8px; font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 20px; transition: 0.2s; text-transform: uppercase; }
+        .btn-schedule { background: #8e24aa; color: white; }
+        .btn-optimize { background: var(--accent); color: white; }
+        .btn-spy { background: var(--success); color: white; }
+        .action-btn:disabled { background: #444; cursor: not-allowed; }
+
+        /* Results */
+        .result-box { background: #000; padding: 25px; border-radius: 10px; border: 1px solid #333; margin-top: 20px; display: none; }
+        .result-card { background: #1a1a1a; padding: 15px; border-left: 4px solid var(--accent); margin-bottom: 10px; border-radius: 4px; }
+        .result-title { font-weight: bold; font-size: 16px; color: #fff; display: block; margin-bottom: 5px; }
+        .result-desc { color: #bbb; font-size: 14px; }
+        
+        #loader { display: none; text-align: center; color: var(--accent); margin-top: 20px; font-weight: bold; }
+        .error-msg { color: #ffbb00; background: #332200; padding: 15px; border-radius: 8px; border: 1px solid #ffbb00; text-align: center; margin-top: 15px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="app-shell">
+    <h1>YouTube Command Center</h1>
+    <div class="usage-bar">Daily Limit: <span id="used" class="usage-count">0</span> / 5 Operations</div>
+
+    <div class="api-box">
+        <label style="margin-top:0; color:#444;">GEMINI API KEY (Saved Locally)</label>
+        <input type="password" id="apiKey" placeholder="Paste Key Here...">
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('scheduler')">⏰ Smart Scheduler</button>
+        <button class="tab-btn" onclick="switchTab('optimizer')">⚡ Video Optimizer</button>
+        <button class="tab-btn" onclick="switchTab('spy')">🕵️ Competitor Spy</button>
+    </div>
+
+    <div id="scheduler" class="content-section active">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+            <div>
+                <label>Channel Niche</label>
+                <input type="text" id="schedNiche" placeholder="e.g. Gaming, Finance, Vlog">
+            </div>
+            <div>
+                <label>Target Audience Location</label>
+                <select id="schedLoc">
+                    <option value="USA/Canada (EST)">USA (New York/EST)</option>
+                    <option value="USA/Canada (PST)">USA (Los Angeles/PST)</option>
+                    <option value="India (IST)">India (IST)</option>
+                    <option value="UK (GMT)">UK (London)</option>
+                    <option value="Global">Global Mix</option>
+                </select>
+            </div>
+        </div>
+        <button class="action-btn btn-schedule" onclick="runScheduler()">Calculate Best Upload Times</button>
+        <div id="schedResult" class="result-box"></div>
+    </div>
+
+    <div id="optimizer" class="content-section">
+        <label>Video Title (Draft)</label>
+        <input type="text" id="optTitle" placeholder="e.g. How to lose weight fast">
+        
+        <label>Video Description / Context</label>
+        <textarea id="optDesc" rows="4" placeholder="Paste your description or explain what happens in the video..."></textarea>
+        
+        <button class="action-btn btn-optimize" onclick="runOptimizer()">Analyze & Optimize Video</button>
+        <div id="optResult" class="result-box"></div>
+    </div>
+
+    <div id="spy" class="content-section">
+        <label>Competitor Channel or Topic</label>
+        <input type="text" id="spyTopic" placeholder="e.g. Dhruv Rathee, MrBeast, or 'AI News'">
+        
+        <button class="action-btn btn-spy" onclick="runSpy()">Fetch Keywords & Strategy</button>
+        <div id="spyResult" class="result-box"></div>
+    </div>
+
+    <div id="loader">Processing Data with Gemini 2.5...</div>
+    <div id="errorBox" class="error-msg"></div>
+
+</div>
+
+<script>
+    const MAX_DAILY = 5;
+
+    // --- Init ---
+    window.onload = () => {
+        updateUsageUI();
+        const key = localStorage.getItem('_yt_cmd_key');
+        if (key) document.getElementById('apiKey').value = key;
+    };
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        
+        document.getElementById(tabId).classList.add('active');
+        event.target.classList.add('active');
+        
+        // Hide previous results to clean UI
+        document.querySelectorAll('.result-box').forEach(el => el.style.display = 'none');
+        document.getElementById('errorBox').style.display = 'none';
+    }
+
+    // --- Usage Logic ---
+    function updateUsageUI() {
+        const usage = getUsage();
+        document.getElementById('used').innerText = usage;
+        if (usage >= MAX_DAILY) {
+            document.querySelectorAll('.action-btn').forEach(b => {
+                b.disabled = true;
+                b.innerText = "Daily Limit Reached";
+            });
+        }
+    }
+
+    function getUsage() {
+        const date = new Date().toISOString().split('T')[0];
+        const data = JSON.parse(localStorage.getItem('_yt_cmd_usage') || '{}');
+        return data[date] || 0;
+    }
+
+    function trackUsage() {
+        const date = new Date().toISOString().split('T')[0];
+        const data = JSON.parse(localStorage.getItem('_yt_cmd_usage') || '{}');
+        data[date] = (data[date] || 0) + 1;
+        localStorage.setItem('_yt_cmd_usage', JSON.stringify(data));
+        updateUsageUI();
+    }
+
+    // --- API Handler ---
+    async function callGemini(prompt) {
+        const key = document.getElementById('apiKey').value.trim();
+        const loader = document.getElementById('loader');
+        const errorBox = document.getElementById('errorBox');
+
+        if (!key) { alert("Please enter API Key!"); return null; }
+        if (getUsage() >= MAX_DAILY) { alert("Daily limit reached!"); return null; }
+
+        localStorage.setItem('_yt_cmd_key', key);
+        loader.style.display = "block";
+        errorBox.style.display = "none";
+
+        try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+
+            const data = await response.json();
+
+            if (response.status === 429) {
+                errorBox.innerText = "Bhai, quota full. Come back tomorrow after 24 hours.";
+                errorBox.style.display = "block";
+                return null;
+            }
+
+            if (!data.candidates) throw new Error("API Error");
+            
+            trackUsage();
+            return data.candidates[0].content.parts[0].text;
+
+        } catch (err) {
+            errorBox.innerText = "Error: " + err.message;
+            errorBox.style.display = "block";
+            return null;
+        } finally {
+            loader.style.display = "none";
+        }
+    }
+
+    // --- Feature 1: Scheduler ---
+    async function runScheduler() {
+        const niche = document.getElementById('schedNiche').value;
+        const loc = document.getElementById('schedLoc').value;
+        if (!niche) return alert("Enter Niche!");
+
+        const prompt = `Act as a YouTube Analyst. For the niche "${niche}" targeting audience in "${loc}", identify the 3 BEST times and days to upload for maximum initial velocity.
+        Explain the viewer psychology for each.
+        
+        Return ONLY valid JSON array:
+        [{"day": "...", "time": "...", "reason": "..."}]`;
+
+        const res = await callGemini(prompt);
+        if (!res) return;
+
+        try {
+            const json = JSON.parse(cleanJson(res));
+            const container = document.getElementById('schedResult');
+            container.innerHTML = `<h3 style="margin-top:0; color:#8e24aa">📅 Best Upload Windows</h3>`;
+            
+            json.forEach(item => {
+                container.innerHTML += `
+                    <div class="result-card" style="border-left-color: #8e24aa">
+                        <span class="result-title">${item.day} @ ${item.time}</span>
+                        <div class="result-desc">${item.reason}</div>
+                    </div>
+                `;
+            });
+            container.style.display = "block";
+        } catch (e) { alert("Error parsing AI response."); }
+    }
+
+    // --- Feature 2: Optimizer ---
+    async function runOptimizer() {
+        const title = document.getElementById('optTitle').value;
+        const desc = document.getElementById('optDesc').value;
+        if (!title) return alert("Enter Title!");
+
+        const prompt = `Act as a YouTube SEO Expert (2025 Algorithms).
+        Analyze this video:
+        Title: "${title}"
+        Desc: "${desc}"
+
+        Task:
+        1. Suggest 3 Better, High-CTR Titles.
+        2. Critique the current metadata (Good/Bad).
+        3. Suggest a Thumbnail Concept.
+
+        Return ONLY valid JSON:
+        {"titles": ["t1", "t2", "t3"], "critique": "...", "thumbnail_idea": "..."}`;
+
+        const res = await callGemini(prompt);
+        if (!res) return;
+
+        try {
+            const json = JSON.parse(cleanJson(res));
+            const container = document.getElementById('optResult');
+            
+            let titlesHtml = json.titles.map(t => `<li style="margin-bottom:5px; color:#fff;">${t}</li>`).join('');
+
+            container.innerHTML = `
+                <h3 style="margin-top:0; color:var(--accent)">⚡ Optimization Report</h3>
+                <div class="result-card">
+                    <span class="result-title">Suggested Titles (High CTR)</span>
+                    <ul style="padding-left:20px; margin-top:5px;">${titlesHtml}</ul>
+                </div>
+                <div class="result-card">
+                    <span class="result-title">Analysis</span>
+                    <div class="result-desc">${json.critique}</div>
+                </div>
+                <div class="result-card">
+                    <span class="result-title">🖼️ Thumbnail Strategy</span>
+                    <div class="result-desc">${json.thumbnail_idea}</div>
+                </div>
+            `;
+            container.style.display = "block";
+        } catch (e) { alert("Error parsing AI response."); }
+    }
+
+    // --- Feature 3: Competitor Spy ---
+    async function runSpy() {
+        const topic = document.getElementById('spyTopic').value;
+        if (!topic) return alert("Enter Competitor/Topic!");
+
+        const prompt = `Act as a YouTube Strategist. For the competitor/topic "${topic}", find:
+        1. 15 High-Volume, Low-Competition Tags/Keywords.
+        2. A summary of what content is currently working for them.
+
+        Return ONLY valid JSON:
+        {"keywords": ["tag1", "tag2"...], "strategy": "..."}`;
+
+        const res = await callGemini(prompt);
+        if (!res) return;
+
+        try {
+            const json = JSON.parse(cleanJson(res));
+            const container = document.getElementById('spyResult');
+            
+            container.innerHTML = `
+                <h3 style="margin-top:0; color:var(--success)">🕵️ Intelligence Report</h3>
+                <div class="result-card" style="border-left-color: var(--success)">
+                    <span class="result-title">🔥 Viral Keywords (Copy These)</span>
+                    <div style="background:#111; padding:10px; border-radius:5px; margin-top:5px; font-family:monospace; color:#888;">
+                        ${json.keywords.join(', ')}
+                    </div>
+                </div>
+                <div class="result-card" style="border-left-color: var(--success)">
+                    <span class="result-title">Content Strategy Analysis</span>
+                    <div class="result-desc">${json.strategy}</div>
+                </div>
+            `;
+            container.style.display = "block";
+        } catch (e) { alert("Error parsing AI response."); }
+    }
+
+    // Helper to remove Markdown code blocks if AI adds them
+    function cleanJson(text) {
+        return text.replace(/```json/g, '').replace(/```/g, '').trim();
+    }
+</script>
+
+</body>
+</html>
